@@ -31,34 +31,34 @@ Your app should now be running on [localhost:5006](http://localhost:5006/).
 
 ## API Documentation
 
-The app exposes a single HTTP endpoint that renders the landing page. Source: index.js:L42-L45.
+The app exposes a single HTTP endpoint that renders the landing page. Source: index.js:L44-L47.
 
 | Method | Path | Description | Response |
 | ------ | ---- | ----------- | -------- |
 | `GET` | `/` | Renders the `pages/index` EJS view | `200 OK` (HTML) |
 
-Source: index.js:L42-L45.
+Source: index.js:L44-L47.
 
-Once the app is running locally (see [Running Locally](#running-locally)), it listens on port `5006` by default (Source: index.js:L22), so you can exercise the route with:
+Once the app is running locally (see [Running Locally](#running-locally)), it listens on port `5006` by default (Source: index.js:L24), so you can exercise the route with:
 
 ```sh
 curl http://localhost:5006/
 ```
 
-The response is the fully rendered HTML landing page produced by `res.render('pages/index')`. Source: index.js:L42-L45.
+The response is the fully rendered HTML landing page produced by `res.render('pages/index')`. Source: index.js:L44-L47.
 
 ## Application Architecture
 
 The application is a small Express server that renders a single server-side view. Its runtime is composed of the following pieces:
 
-- **Express bootstrap** — the application instance is created with `express()`. Source: index.js:L24.
-- **Static assets** — files under `public/` (for example `lang-logo.png`, `node.svg`, and `stylesheets/main.css`) are served with `express.static`. Source: index.js:L26.
-- **EJS view engine** — the `views/` directory is registered and `ejs` is set as the view engine, so `res.render('pages/index')` renders `views/pages/index.ejs`. Source: index.js:L27-L28.
-- **HTTP listener** — `app.listen(port, ...)` starts the server and logs the port it is listening on. Source: index.js:L53-L55.
-- **Keep-Alive tuning** — `server.keepAliveTimeout` is set to `95 * 1000` (95 seconds), intentionally longer than the Heroku Router's 90-second Keep-Alive idle timeout. This ensures the **router** (not the Node.js server) always initiates closing an idle connection, and it avoids a race condition where the router forwards a request just as Node.js is closing the socket. Source: index.js:L57-L63.
-- **Graceful shutdown** — a `SIGTERM` handler calls `server.close()` so the server stops accepting new connections and lets in-flight requests finish before the process exits. Source: index.js:L75-L83.
+- **Express bootstrap** — the application instance is created with `express()`. Source: index.js:L26.
+- **Static assets** — files under `public/` (for example `lang-logo.png`, `node.svg`, and `stylesheets/main.css`) are served with `express.static`. Source: index.js:L28.
+- **EJS view engine** — the `views/` directory is registered and `ejs` is set as the view engine, so `res.render('pages/index')` renders `views/pages/index.ejs`. Source: index.js:L29-L30.
+- **HTTP listener** — `app.listen(port, ...)` starts the server and logs the port it is listening on. Source: index.js:L55-L57.
+- **Keep-Alive tuning** — `server.keepAliveTimeout` is set to `95 * 1000` (95 seconds), intentionally longer than the Heroku Router's 90-second Keep-Alive idle timeout. This ensures the **router** (not the Node.js server) always initiates closing an idle connection, and it avoids a race condition where the router forwards a request just as Node.js is closing the socket. Source: index.js:L59-L65.
+- **Graceful shutdown** — a `SIGTERM` handler calls `server.close()` so the server stops accepting new connections and lets in-flight requests finish before the process exits. Source: index.js:L77-L85.
 
-The following diagram shows how an incoming `GET /` request is served. Source: index.js:L42-L45.
+The following diagram shows how an incoming `GET /` request is served. Source: index.js:L44-L47.
 
 ```mermaid
 sequenceDiagram
@@ -70,7 +70,7 @@ sequenceDiagram
     V-->>C: 200 HTML
 ```
 
-On `SIGTERM`, the server shuts down gracefully. Source: index.js:L75-L83.
+On `SIGTERM`, the server shuts down gracefully. Source: index.js:L77-L85.
 
 ```mermaid
 flowchart LR
@@ -82,7 +82,7 @@ flowchart LR
 
 | Variable | Default | Description | Source |
 | -------- | ------- | ----------- | ------ |
-| `PORT` | `5006` | HTTP listen port; read from the `PORT` environment variable, falling back to `5006` when unset | index.js:L22 |
+| `PORT` | `5006` | HTTP listen port; read from the `PORT` environment variable, falling back to `5006` when unset | index.js:L24 |
 | `TIMES` | `2` | Demo value present in the checked-in `.env` file | .env:L5 |
 
 > **Note:** The `.env` file is committed **for demonstration purposes only**. For real projects, add `.env` to your `.gitignore` and remove it from the git cache with `git rm --cached .env`. Source: .env:L1-L4.
