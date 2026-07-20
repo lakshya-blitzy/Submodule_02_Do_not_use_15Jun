@@ -27,7 +27,7 @@ Your app should now be running on [localhost:5006](http://localhost:5006/).
 - [Environment Variables](#environment-variables)
 - [Testing](#testing)
 
-> **Project Context** — This app is the nested **grandchild** submodule (`Submodule_02_Do_not_use_15Jun`, a Node.js/Express Heroku sample) in a three-level Git submodule tree, registered by its parent's submodule configuration. Source: Submodule_01_Do_not_use_15Jun/.gitmodules:L1-L3. Navigate up to the parent [`.gitignore` templates submodule](../README.md) and the grandparent [Python Koans project](../../README.rst). These relative links resolve within the combined superproject checkout; if the submodules are not yet populated, run `git submodule update --init --recursive`.
+> **Project Context** — This app is the nested **grandchild** submodule (`Submodule_02_Do_not_use_15Jun`) in a three-level Git submodule tree: the grandparent Python Koans project registers the `.gitignore`-templates child, which in turn registers this app. Source: .gitmodules:L1-L3; Submodule_01_Do_not_use_15Jun/.gitmodules:L1-L3. It is a Node.js/Express Heroku sample — its manifest declares the supported Node engines and the Express dependency, and the Heroku web dyno launches it with `node index.js`. Source: package.json:L5-L7, L13-L15; Procfile:L1. Navigate up to the parent [`.gitignore` templates submodule](../README.md) and the grandparent [Python Koans project](../../README.rst). These relative links resolve within the combined superproject checkout; if the submodules are not yet populated, run `git submodule update --init --recursive`.
 
 ## API Documentation
 
@@ -82,16 +82,16 @@ flowchart LR
 
 | Variable | Default | Description | Source |
 | -------- | ------- | ----------- | ------ |
-| `PORT` | `5006` | HTTP listen port; overridable via the environment (Heroku sets it automatically) | index.js:L22 |
+| `PORT` | `5006` | HTTP listen port; read from the `PORT` environment variable, falling back to `5006` when unset | index.js:L22 |
 | `TIMES` | `2` | Demo value present in the checked-in `.env` file | .env:L5 |
 
 > **Note:** The `.env` file is committed **for demonstration purposes only**. For real projects, add `.env` to your `.gitignore` and remove it from the git cache with `git rm --cached .env`. Source: .env:L1-L4.
 
 ## Testing
 
-Automated tests are written with [Jest](https://jestjs.io/) and run via `npm test`. Source: package.json (scripts, `"test": "jest"`).
+Automated tests are written with [Jest](https://jestjs.io/) and run via `npm test`. Source: package.json:L9-L12.
 
-The `getting started guide` suite boots the app with `node index.js`, then issues `GET /` requests over both IPv4 (`http://127.0.0.1:${PORT}`) and IPv6 (`http://[::1]:${PORT}`), asserting an HTTP `200` status and that the response body contains the page title and heading. Source: test.js:L50-L64. Each request is made through a small Promise-based `get(url)` helper. Source: test.js:L86-L103.
+The `getting started guide` suite boots the app with `node index.js`, then issues `GET /` requests over both IPv4 (`http://127.0.0.1:${PORT}`) and IPv6 (`http://[::1]:${PORT}`), asserting an HTTP `200` status and that the response body contains the page title and heading. Source: test.js:L32-L64. Each request is made through a small Promise-based `get(url)` helper. Source: test.js:L86-L103.
 
 A representative assertion from the suite:
 
