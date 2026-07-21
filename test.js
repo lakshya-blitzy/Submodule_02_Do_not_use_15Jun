@@ -8,13 +8,17 @@
  * (`[::1]`) loopback, asserting an HTTP 200 response together with the expected
  * landing-page title and heading.
  *
- * It relies solely on Node.js built-ins: `child_process.spawn` to launch the server
- * (Source: test.js:1) and `http.request`, wrapped by the Promise-based {@link get}
- * helper, to issue the requests (Source: test.js:2). The target port is read from
- * `process.env.PORT`, falling back to 5006 to match the server default. This module
- * exports nothing and is executed directly by the Jest runner (`npm test`).
+ * For process control and networking the suite relies on Node.js built-ins:
+ * `child_process.spawn` launches the server (Source: test.js:23) and `http.request`,
+ * wrapped by the Promise-based {@link get} helper, issues the requests
+ * (Source: test.js:24). The test *structure* and *assertions*, by contrast, are
+ * provided by Jest -- the `describe`/`beforeEach`/`afterEach`/`it` globals and the
+ * `expect` matchers, backed by the declared `jest` dev dependency
+ * (Source: package.json:L18). The target port is read from `process.env.PORT`,
+ * falling back to 5006 to match the server default. This module exports nothing and
+ * is executed directly by the Jest runner (`npm test`).
  *
- * Source: test.js:1-6
+ * Source: test.js:23-48
  */
 const { spawn } = require('child_process')
 const { request } = require('http')
@@ -27,7 +31,7 @@ const { request } = require('http')
  * always connect to the port the application actually listens on.
  *
  * @constant {number|string} PORT
- * Source: test.js:4
+ * Source: test.js:36
  */
 const PORT = process.env.PORT || 5006
 
@@ -39,7 +43,7 @@ const PORT = process.env.PORT || 5006
  * the individual specs assert that the landing page renders correctly over both the
  * IPv4 and IPv6 loopback interfaces.
  *
- * Source: test.js:6
+ * Source: test.js:48
  */
 describe('getting started guide', () => {
   let app
@@ -54,12 +58,28 @@ describe('getting started guide', () => {
    *
    * @function beforeEach
    * @returns {Promise<void>} Resolves after the ~500 ms startup grace period.
-   * Source: test.js:9-14
+   * Source: test.js:63-84
    */
   beforeEach(async () => {
     app = spawn('node', ['index.js'])
+    /**
+     * stdout forwarder for the spawned server. Prints each chunk the child
+     * process writes to its standard output to the test console, giving the
+     * running test visibility into the server's startup log.
+     *
+     * @param {Buffer} data - A chunk of the child process's stdout stream.
+     * @returns {void}
+     */
     app.stdout.on('data', (data) => console.log(data.toString()))
     // give the server a short time to start up
+    /**
+     * Startup grace-period resolver. Defers resolution by roughly 500 ms via
+     * `setTimeout` so the freshly spawned HTTP server has time to begin
+     * listening before the first request is issued.
+     *
+     * @param {() => void} resolve - Resolves the startup Promise once the delay elapses.
+     * @returns {void}
+     */
     return new Promise(resolve => setTimeout(resolve, 500))
   })
 
@@ -72,7 +92,7 @@ describe('getting started guide', () => {
    *
    * @function afterEach
    * @returns {void}
-   * Source: test.js:16-21
+   * Source: test.js:97-102
    */
   afterEach(() => {
     if (app) {
@@ -90,7 +110,7 @@ describe('getting started guide', () => {
    * (`Getting Started on Heroku with Node.js`) in the response body.
    *
    * @returns {Promise<void>} Resolves once all assertions have passed.
-   * Source: test.js:23-28
+   * Source: test.js:115-120
    */
   it('should bind to IPv4 and respond to GET /', async () => {
     const response = await get(`http://127.0.0.1:${PORT}`)
@@ -107,7 +127,7 @@ describe('getting started guide', () => {
    * and heading, confirming the server also serves requests over IPv6.
    *
    * @returns {Promise<void>} Resolves once all assertions have passed.
-   * Source: test.js:30-35
+   * Source: test.js:132-137
    */
   it('should bind to IPv6 and respond to GET /', async () => {
     const response = await get(`http://[::1]:${PORT}`)
@@ -122,10 +142,10 @@ describe('getting started guide', () => {
  *
  * Wraps Node's event-driven `http.request` in a Promise: it opens a `GET` request to the
  * given URL, sets the response encoding to UTF-8 and accumulates the streamed response
- * chunks on each `data` event (Source: test.js:42-43), and resolves once the response
- * stream emits `end` (Source: test.js:44-49). The promise rejects if the response stream
- * emits an `error` (Source: test.js:50) or the request itself emits an `error`
- * (Source: test.js:52) - e.g. a connection refusal or other network failure.
+ * chunks on each `data` event (Source: test.js:183-191), and resolves once the response
+ * stream emits `end` (Source: test.js:199-204). The promise rejects if the response stream
+ * emits an `error` (Source: test.js:205) or the request itself emits an `error`
+ * (Source: test.js:207) - e.g. a connection refusal or other network failure.
  *
  * @param {string} url - The absolute URL to GET (e.g. `http://127.0.0.1:5006`).
  * @returns {Promise<{statusCode: number, body: string}>} Resolves with the HTTP response
@@ -136,14 +156,46 @@ describe('getting started guide', () => {
  * const response = await get(`http://127.0.0.1:${PORT}`)
  * // response.statusCode === 200
  * // response.body contains the rendered HTML landing page
- * Source: test.js:38-55
+ * Source: test.js:161-210
  */
 async function get(url) {
+  /**
+   * Promise executor for {@link get}. Receives the `resolve`/`reject` functions
+   * used to settle the returned Promise: it opens the HTTP request and wires the
+   * response- and error-event listeners that ultimately call them.
+   *
+   * @param {(value: {statusCode: number, body: string}) => void} resolve - Settles the Promise with the response.
+   * @param {(reason?: any) => void} reject - Rejects the Promise on a request or response error.
+   * @returns {void}
+   */
   return new Promise((resolve, reject) => {
+    /**
+     * HTTP response callback for the outgoing `GET` request. Invoked once the
+     * response headers arrive; sets the response encoding to UTF-8 and registers
+     * the streaming `data`/`end`/`error` listeners that accumulate and resolve
+     * the body.
+     *
+     * @param {import('http').IncomingMessage} res - The incoming HTTP response stream.
+     * @returns {void}
+     */
     const req = request(url, {method: 'GET'}, (res) => {
       let body = ''
       res.setEncoding('utf-8')
+      /**
+       * Response `data` accumulator. Appends each decoded chunk of the response
+       * body to the `body` string as it streams in.
+       *
+       * @param {string} data - A UTF-8-decoded chunk of the response body.
+       * @returns {void}
+       */
       res.on('data', (data) => body += data)
+      /**
+       * Response `end` handler. Fires once the full response body has been
+       * received and resolves the Promise with the HTTP status code and the
+       * fully accumulated body.
+       *
+       * @returns {void}
+       */
       res.on('end', () => {
         resolve({
           statusCode: res.statusCode,

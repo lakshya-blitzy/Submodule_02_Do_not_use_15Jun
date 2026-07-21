@@ -11,9 +11,7 @@ This application supports the tutorials for both the [Cedar and Fir generations]
 
 - [Setup](#setup)
 - [Running Locally](#running-locally)
-- [API Documentation](#api-documentation)
 - [API Reference](#api-reference)
-- [Application Architecture](#application-architecture)
 - [Environment Variables](#environment-variables)
 - [Testing](#testing)
 - [Deploying to Heroku](#deploying-to-heroku)
@@ -30,7 +28,7 @@ Install the dependencies and start the server:
 npm install && npm start
 ```
 
-`npm start` runs `node index.js`. Source: package.json:L10. By default the app is then served at **`http://localhost:5006`**. Source: index.js:L24.
+`npm start` runs `node index.js`. Source: package.json:L10. By default the app is then served at **`http://localhost:5006`**. Source: index.js:L31.
 
 Run the automated test suite (see [Testing](#testing) for details):
 
@@ -65,38 +63,20 @@ Your app should now be running on [localhost:5006](http://localhost:5006/).
 
 **Developer guide** — jump to the sections added below:
 
-- [API Documentation](#api-documentation)
-- [Application Architecture](#application-architecture)
+- [API Reference](#api-reference)
 - [Environment Variables](#environment-variables)
 - [Testing](#testing)
+- [Inline Code Explanations](#inline-code-explanations)
 
-> **Project Context** — This app is the nested **grandchild** submodule (`Submodule_02_Do_not_use_15Jun`) in a three-level Git submodule tree: the grandparent Python Koans project registers the `.gitignore`-templates child, which in turn registers this app. Source: .gitmodules:L1-L3; Submodule_01_Do_not_use_15Jun/.gitmodules:L1-L3. It is a Node.js/Express Heroku sample — its manifest declares the supported Node engines and the Express dependency, and the Heroku web dyno launches it with `node index.js`. Source: package.json:L5-L7, L13-L15; Procfile:L1. Navigate up to the parent [`.gitignore` templates submodule](../README.md) and the grandparent [Python Koans project](../../README.rst). These relative links resolve within the combined superproject checkout; if the submodules are not yet populated, run `git submodule update --init --recursive`.
-
-## API Documentation
-
-The app exposes a single HTTP endpoint that renders the landing page. Source: index.js:L44-L47.
-
-| Method | Path | Description | Response |
-| ------ | ---- | ----------- | -------- |
-| `GET` | `/` | Renders the `pages/index` EJS view | `200 OK` (HTML) |
-
-Source: index.js:L44-L47.
-
-Once the app is running locally (see [Running Locally](#running-locally)), it listens on port `5006` by default (Source: index.js:L24), so you can exercise the route with:
-
-```sh
-curl http://localhost:5006/
-```
-
-The response is the fully rendered HTML landing page produced by `res.render('pages/index')`. Source: index.js:L44-L47.
+> **Project Context** — This app is the nested **grandchild** submodule (`Submodule_02_Do_not_use_15Jun`) in a three-level Git submodule tree: the grandparent Python Koans project registers the `.gitignore`-templates child, which in turn registers this app. Source: ../../.gitmodules:L1-L3; ../.gitmodules:L1-L3. It is a Node.js/Express Heroku sample — its manifest declares the supported Node engines and the Express dependency, and the Heroku web dyno launches it with `node index.js`. Source: package.json:L5-L7, L13-L15; Procfile:L1. Navigate up to the parent [`.gitignore` templates submodule](../README.md) and the grandparent [Python Koans project](../../README.rst). These relative links resolve within the combined superproject checkout; if the submodules are not yet populated, run `git submodule update --init --recursive`.
 
 ## API Reference
 
-The application exposes exactly one public HTTP endpoint (this section formalizes the contract summarized under [API Documentation](#api-documentation) above). The `GET /` route responds with `200 text/html`, and the body is rendered from the EJS template `pages/index` (i.e. `views/pages/index.ejs`). Source: index.js:L44-L47. The rendered page includes the title `<title>Node.js Getting Started on Heroku</title>` (Source: views/partials/header.ejs:L1) and the heading `Getting Started on Heroku with Node.js` (Source: views/pages/index.ejs:L16) — exactly what the Jest suite asserts. Source: test.js:L53-L54.
+The application exposes exactly one public HTTP endpoint. The `GET /` route responds with `200 text/html`, and the body is rendered from the EJS template `pages/index` (i.e. `views/pages/index.ejs`). Source: index.js:L67-L70. The rendered page includes the title `<title>Node.js Getting Started on Heroku</title>` (Source: views/partials/header.ejs:L1) and the heading `Getting Started on Heroku with Node.js` (Source: views/pages/index.ejs:L16) — exactly what the Jest suite asserts. Source: test.js:L115-L137.
 
 | Method | Path | Request params | Response status | Content-Type | Body source |
 | ------ | ---- | -------------- | --------------- | ------------ | ----------- |
-| GET | `/` | none | `200` | `text/html` | EJS template `pages/index` (Source: index.js:L44-L47) |
+| GET | `/` | none | `200` | `text/html` | EJS template `pages/index` (Source: index.js:L67-L70) |
 
 The following sequence shows how a `GET /` request is served:
 
@@ -111,43 +91,22 @@ sequenceDiagram
     E-->>C: 200 text/html
 ```
 
-## Application Architecture
+Once the app is running locally (see [Running Locally](#running-locally)), it listens on port `5006` by default (Source: index.js:L31), so you can exercise the route with:
 
-The application is a small Express server that renders a single server-side view. Its runtime is composed of the following pieces:
-
-- **Express bootstrap** — the application instance is created with `express()`. Source: index.js:L26.
-- **Static assets** — files under `public/` (for example `lang-logo.png`, `node.svg`, and `stylesheets/main.css`) are served with `express.static`. Source: index.js:L28.
-- **EJS view engine** — the `views/` directory is registered and `ejs` is set as the view engine, so `res.render('pages/index')` renders `views/pages/index.ejs`. Source: index.js:L29-L30.
-- **HTTP listener** — `app.listen(port, ...)` starts the server and logs the port it is listening on. Source: index.js:L55-L57.
-- **Keep-Alive tuning** — `server.keepAliveTimeout` is set to `95 * 1000` (95 seconds), intentionally longer than the Heroku Router's 90-second Keep-Alive idle timeout. This ensures the **router** (not the Node.js server) always initiates closing an idle connection, and it avoids a race condition where the router forwards a request just as Node.js is closing the socket. Source: index.js:L59-L65.
-- **Graceful shutdown** — a `SIGTERM` handler calls `server.close()` so the server stops accepting new connections and lets in-flight requests finish before the process exits. Source: index.js:L77-L85.
-
-The following diagram shows how an incoming `GET /` request is served. Source: index.js:L44-L47.
-
-```mermaid
-sequenceDiagram
-    participant C as HTTP Client
-    participant E as Express app
-    participant V as EJS view (pages/index)
-    C->>E: GET /
-    E->>V: res.render('pages/index')
-    V-->>C: 200 HTML
+```sh
+curl http://localhost:5006/
 ```
 
-On `SIGTERM`, the server shuts down gracefully. Source: index.js:L77-L85.
-
-```mermaid
-flowchart LR
-    A["SIGTERM received"] --> B["server.close()"]
-    B --> C["HTTP server closed"]
-```
+The response is the fully rendered HTML landing page produced by `res.render('pages/index')`. Source: index.js:L67-L70.
 
 ## Environment Variables
 
 | Variable | Default | Description | Source |
 | -------- | ------- | ----------- | ------ |
-| `PORT` | `5006` | HTTP listen port; read from the `PORT` environment variable, falling back to `5006` when unset | index.js:L24 |
+| `PORT` | `5006` | HTTP listen port; read from the `PORT` environment variable, falling back to `5006` when unset | index.js:L31 |
 | `TIMES` | `2` | Demo value present in the checked-in `.env` file | .env:L5 |
+
+> **`PORT` is not defined in `.env`.** The checked-in `.env` file sets only `TIMES=2` (Source: .env:L5); it does **not** declare `PORT`. At runtime `PORT` is therefore taken from the process environment (for example, the value Heroku injects into the dyno), and when that variable is unset the server falls back to `5006` in code. Source: index.js:L31.
 
 > **Note:** The `.env` file is committed **for demonstration purposes only**. For real projects, add `.env` to your `.gitignore` and remove it from the git cache with `git rm --cached .env`. Source: .env:L1-L4.
 
@@ -155,7 +114,7 @@ flowchart LR
 
 Automated tests are written with [Jest](https://jestjs.io/) and run via `npm test`. Source: package.json:L9-L12.
 
-The `getting started guide` suite boots the app with `node index.js`, then issues `GET /` requests over both IPv4 (`http://127.0.0.1:${PORT}`) and IPv6 (`http://[::1]:${PORT}`), asserting an HTTP `200` status and that the response body contains the page title and heading. Source: test.js:L32-L64. Each request is made through a small Promise-based `get(url)` helper. Source: test.js:L86-L103.
+The `getting started guide` suite boots the app with `node index.js`, then issues `GET /` requests over both IPv4 (`http://127.0.0.1:${PORT}`) and IPv6 (`http://[::1]:${PORT}`), asserting an HTTP `200` status and that the response body contains the page title and heading. Source: test.js:L48-L138. Each request is made through a small Promise-based `get(url)` helper. Source: test.js:L161-L210.
 
 A representative assertion from the suite:
 
@@ -165,7 +124,7 @@ expect(response.statusCode).toBe(200)
 expect(response.body).toMatch("<title>Node.js Getting Started on Heroku</title>")
 ```
 
-Source: test.js:L51-L53.
+Source: test.js:L116-L118.
 
 Run the full suite with:
 
@@ -212,11 +171,18 @@ The Heroku web process is declared by the `Procfile`, which starts the app with 
 
 ## Inline Code Explanations
 
-The source files carry [JSDoc](https://jsdoc.app/) annotations for every function and callback, so the most detailed, parameter- and return-level documentation lives beside the code. In `index.js` this covers the `GET /` route handler, the `app.listen` bootstrap callback, and the `SIGTERM` handler. Source: index.js:L32-L43, index.js:L49-L54, index.js:L67-L76. In `test.js` it covers the Promise-based `get(url)` helper. Source: test.js:L67-L85. Read those blocks alongside the summaries below.
+The source files carry [JSDoc](https://jsdoc.app/) annotations for every function and callback, so the most detailed, parameter- and return-level documentation lives beside the code. In `index.js` this covers the `GET /` route handler, the `app.listen` bootstrap callback, and the `SIGTERM` handler together with its `server.close` completion callback. Source: index.js:L56-L70, index.js:L72-L83, index.js:L106-L131. In `test.js` it covers the module's `describe`/`beforeEach`/`afterEach`/`it` lifecycle, the Promise-based `get(url)` helper, and every inline callback within them — the stdout forwarder, the startup resolver, the `get` Promise executor, the HTTP response callback, and the response `data` and `end` handlers. Source: test.js:L48-L210. Read those blocks alongside the summaries below.
 
-**Request flow.** Express receives `GET /`, the route handler logs the render and calls `res.render('pages/index')`, the EJS view engine renders the HTML, and Express returns `200 text/html`. Source: index.js:L44-L47.
+**Application components.** The server is assembled in `index.js` from a few pieces:
 
-**Graceful-shutdown flow.** On `SIGTERM` (sent by Heroku when a dyno is cycled or scaled down), the handler logs receipt and, if the server exists, calls `server.close(...)`, which logs `HTTP server closed` once in-flight requests have drained. Source: index.js:L77-L85. The server's `keepAliveTimeout` is set to `95 * 1000` (95 seconds) — deliberately longer than the Heroku Router's 90-second Keep-Alive idle timeout, so the router (not the Node.js server) always initiates closing an idle connection. Source: index.js:L59-L65.
+- **Express bootstrap** — the application instance is created with `express()`. Source: index.js:L40.
+- **Static assets** — files under `public/` (for example `lang-logo.png`, `node.svg`, and `stylesheets/main.css`) are served with `express.static`. Source: index.js:L52.
+- **EJS view engine** — the `views/` directory is registered and `ejs` is set as the view engine, so `res.render('pages/index')` renders `views/pages/index.ejs`. Source: index.js:L53-L54.
+- **HTTP listener** — `app.listen(port, ...)` starts the server and logs the port it is listening on. Source: index.js:L81-L83.
+
+**Request flow.** Express receives `GET /`, the route handler logs the render and calls `res.render('pages/index')`, the EJS view engine renders the HTML, and Express returns `200 text/html`. Source: index.js:L67-L70.
+
+**Graceful-shutdown flow.** On `SIGTERM` (sent by Heroku when a dyno is cycled or scaled down), the handler logs receipt and, if the server exists, calls `server.close(...)`, which logs `HTTP server closed` once in-flight requests have drained. Source: index.js:L118-L131. The server's `keepAliveTimeout` is set to `95 * 1000` (95 seconds) — deliberately longer than the Heroku Router's 90-second Keep-Alive idle timeout, so the router (not the Node.js server) always initiates closing an idle connection. Source: index.js:L98-L104.
 
 ```mermaid
 flowchart TD
