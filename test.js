@@ -73,12 +73,12 @@ describe('getting started guide', () => {
     app.stdout.on('data', (data) => console.log(data.toString()))
     // give the server a short time to start up
     /**
-     * Startup grace-period resolver. Defers resolution by roughly 500 ms via
-     * `setTimeout` so the freshly spawned HTTP server has time to begin
-     * listening before the first request is issued.
+     * Startup grace-period Promise executor passed to `new Promise`: it hands the
+     * Promise's `resolve` to `setTimeout` so the Promise settles after ~500 ms, letting
+     * the spawned server begin listening first. As a concise arrow it implicitly returns
+     * the `setTimeout` `Timeout` handle, which the `Promise` constructor ignores.
      *
-     * @param {() => void} resolve - Resolves the startup Promise once the delay elapses.
-     * @returns {void}
+     * @param {() => void} resolve - The Promise's resolve function, fired by `setTimeout`.
      */
     return new Promise(resolve => setTimeout(resolve, 500))
   })
@@ -149,9 +149,9 @@ describe('getting started guide', () => {
  *
  * @param {string} url - The absolute URL to GET (e.g. `http://127.0.0.1:5006`).
  * @returns {Promise<{statusCode: number, body: string}>} Resolves with the HTTP response
- *   status code and the fully accumulated, UTF-8-decoded response body.
- * @throws {Error} Rejects (rather than throwing synchronously) on a request or
- *   response-stream `error` event.
+ *   status code and the fully accumulated, UTF-8-decoded response body; rejects with an
+ *   `Error` (rather than throwing synchronously) if the request or response stream emits
+ *   an `error` event, e.g. a connection refusal or other network failure.
  * @example
  * const response = await get(`http://127.0.0.1:${PORT}`)
  * // response.statusCode === 200
@@ -183,10 +183,10 @@ async function get(url) {
       res.setEncoding('utf-8')
       /**
        * Response `data` accumulator. Appends each decoded chunk of the response
-       * body to the `body` string as it streams in.
+       * body to the `body` string as it streams in. Written as a concise arrow, it
+       * implicitly returns the updated `body` string, a value the emitter ignores.
        *
        * @param {string} data - A UTF-8-decoded chunk of the response body.
-       * @returns {void}
        */
       res.on('data', (data) => body += data)
       /**

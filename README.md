@@ -20,7 +20,7 @@ This application supports the tutorials for both the [Cedar and Fir generations]
 
 ## Setup
 
-This app targets Node.js **`20.x || 22.x || 24.x`**. Source: package.json:L5-L7. The [Heroku CLI](https://cli.heroku.com/) is only needed for deployment (see [Deploying to Heroku](#deploying-to-heroku)); it is also noted under [Running Locally](#running-locally).
+This app targets Node.js **`20.x || 22.x || 24.x`**. Source: package.json:L5-L7. Only Node.js is required to install the dependencies and run the app locally. The [Heroku CLI](https://cli.heroku.com/) is **optional** — it is needed only for deployment (see [Deploying to Heroku](#deploying-to-heroku)) or for running Heroku-specific commands, so the mention of it under [Running Locally](#running-locally) applies only when you intend to deploy.
 
 Install the dependencies and start the server:
 
@@ -51,6 +51,8 @@ The app is released under the **MIT** license. Source: package.json:L29.
 ## Running Locally
 
 Make sure you have [Node.js](http://nodejs.org/) and the [Heroku CLI](https://cli.heroku.com/) installed.
+
+> **Local prerequisites:** Only [Node.js](http://nodejs.org/) is required to clone, install, and run the app locally with the commands below. The [Heroku CLI](https://cli.heroku.com/) is **optional** and is needed only when you deploy (see [Deploying to Heroku](#deploying-to-heroku)) or run Heroku-specific commands.
 
 ```sh
 $ git clone https://github.com/heroku/nodejs-getting-started.git # or clone your own fork
@@ -171,7 +173,7 @@ The Heroku web process is declared by the `Procfile`, which starts the app with 
 
 ## Inline Code Explanations
 
-The source files carry [JSDoc](https://jsdoc.app/) annotations for every function and callback, so the most detailed, parameter- and return-level documentation lives beside the code. In `index.js` this covers the `GET /` route handler, the `app.listen` bootstrap callback, and the `SIGTERM` handler together with its `server.close` completion callback. Source: index.js:L56-L70, index.js:L72-L83, index.js:L106-L131. In `test.js` it covers the module's `describe`/`beforeEach`/`afterEach`/`it` lifecycle, the Promise-based `get(url)` helper, and every inline callback within them — the stdout forwarder, the startup resolver, the `get` Promise executor, the HTTP response callback, and the response `data` and `end` handlers. Source: test.js:L48-L210. Read those blocks alongside the summaries below.
+The source files carry [JSDoc](https://jsdoc.app/) annotations for every function and callback, so the most detailed, parameter- and return-level documentation lives beside the code. In `index.js` this covers the `GET /` route handler, the `app.listen` bootstrap callback, and the `SIGTERM` handler together with its `server.close` completion callback. Source: index.js:L56-L70, index.js:L72-L83, index.js:L106-L131. In `test.js` it covers the module's `describe`/`beforeEach`/`afterEach`/`it` lifecycle, the Promise-based `get(url)` helper, and every inline callback within them — the stdout forwarder, the startup Promise executor, the `get` Promise executor, the HTTP response callback, and the response `data` and `end` handlers. Source: test.js:L48-L210. Read those blocks alongside the summaries below.
 
 **Application components.** The server is assembled in `index.js` from a few pieces:
 
