@@ -7,6 +7,49 @@ This application supports the tutorials for both the [Cedar and Fir generations]
 * [Getting Started on Heroku with Node.js](https://devcenter.heroku.com/articles/getting-started-with-nodejs)
 * [Getting Started on Heroku Fir with Node.js](https://devcenter.heroku.com/articles/getting-started-with-nodejs-fir)
 
+## Table of Contents
+
+- [Setup](#setup)
+- [Running Locally](#running-locally)
+- [API Documentation](#api-documentation)
+- [API Reference](#api-reference)
+- [Application Architecture](#application-architecture)
+- [Environment Variables](#environment-variables)
+- [Testing](#testing)
+- [Deploying to Heroku](#deploying-to-heroku)
+- [Inline Code Explanations](#inline-code-explanations)
+- [Documentation](#documentation)
+
+## Setup
+
+This app targets Node.js **`20.x || 22.x || 24.x`**. Source: package.json:L5-L7. The [Heroku CLI](https://cli.heroku.com/) is only needed for deployment (see [Deploying to Heroku](#deploying-to-heroku)); it is also noted under [Running Locally](#running-locally).
+
+Install the dependencies and start the server:
+
+```sh
+npm install && npm start
+```
+
+`npm start` runs `node index.js`. Source: package.json:L10. By default the app is then served at **`http://localhost:5006`**. Source: index.js:L24.
+
+Run the automated test suite (see [Testing](#testing) for details):
+
+```sh
+npm test
+```
+
+`npm test` runs Jest. Source: package.json:L11.
+
+**Dependencies** (documented here; this guide does not modify them):
+
+| Package | Version | Type | Source |
+| ------- | ------- | ---- | ------ |
+| `express` | `^5.2.1` | runtime | package.json:L15 |
+| `ejs` | `^6.0.1` | runtime | package.json:L14 |
+| `jest` | `^30.4.2` | dev | package.json:L18 |
+
+The app is released under the **MIT** license. Source: package.json:L29.
+
 ## Running Locally
 
 Make sure you have [Node.js](http://nodejs.org/) and the [Heroku CLI](https://cli.heroku.com/) installed.
@@ -46,6 +89,27 @@ curl http://localhost:5006/
 ```
 
 The response is the fully rendered HTML landing page produced by `res.render('pages/index')`. Source: index.js:L44-L47.
+
+## API Reference
+
+The application exposes exactly one public HTTP endpoint (this section formalizes the contract summarized under [API Documentation](#api-documentation) above). The `GET /` route responds with `200 text/html`, and the body is rendered from the EJS template `pages/index` (i.e. `views/pages/index.ejs`). Source: index.js:L44-L47. The rendered page includes the title `<title>Node.js Getting Started on Heroku</title>` (Source: views/partials/header.ejs:L1) and the heading `Getting Started on Heroku with Node.js` (Source: views/pages/index.ejs:L16) — exactly what the Jest suite asserts. Source: test.js:L53-L54.
+
+| Method | Path | Request params | Response status | Content-Type | Body source |
+| ------ | ---- | -------------- | --------------- | ------------ | ----------- |
+| GET | `/` | none | `200` | `text/html` | EJS template `pages/index` (Source: index.js:L44-L47) |
+
+The following sequence shows how a `GET /` request is served:
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant E as Express app (index.js)
+    participant V as EJS view engine
+    C->>E: GET /
+    E->>V: res.render('pages/index')
+    V-->>E: Rendered HTML
+    E-->>C: 200 text/html
+```
 
 ## Application Architecture
 
@@ -138,6 +202,28 @@ $ heroku spaces:create <space-name> --team <team-name> --generation fir
 $ heroku create --space <space-name>
 $ git push heroku main
 $ heroku open
+```
+
+### Deployment Notes
+
+The Heroku web process is declared by the `Procfile`, which starts the app with `web: node index.js`. Source: Procfile:L1. For `app.json`-based provisioning (for example the "Deploy to Heroku" button), the app selects the `heroku/nodejs` builder image. Source: app.json:L6.
+
+> **Version note:** The `app.json` description text still reads "Express 4". Source: app.json:L3. The app actually depends on **Express `^5.2.1`**. Source: package.json:L15. Treat `^5.2.1` as authoritative; the `app.json` descriptor text is stale and does not affect the installed dependency.
+
+## Inline Code Explanations
+
+The source files carry [JSDoc](https://jsdoc.app/) annotations for every function and callback, so the most detailed, parameter- and return-level documentation lives beside the code. In `index.js` this covers the `GET /` route handler, the `app.listen` bootstrap callback, and the `SIGTERM` handler. Source: index.js:L32-L43, index.js:L49-L54, index.js:L67-L76. In `test.js` it covers the Promise-based `get(url)` helper. Source: test.js:L67-L85. Read those blocks alongside the summaries below.
+
+**Request flow.** Express receives `GET /`, the route handler logs the render and calls `res.render('pages/index')`, the EJS view engine renders the HTML, and Express returns `200 text/html`. Source: index.js:L44-L47.
+
+**Graceful-shutdown flow.** On `SIGTERM` (sent by Heroku when a dyno is cycled or scaled down), the handler logs receipt and, if the server exists, calls `server.close(...)`, which logs `HTTP server closed` once in-flight requests have drained. Source: index.js:L77-L85. The server's `keepAliveTimeout` is set to `95 * 1000` (95 seconds) — deliberately longer than the Heroku Router's 90-second Keep-Alive idle timeout, so the router (not the Node.js server) always initiates closing an idle connection. Source: index.js:L59-L65.
+
+```mermaid
+flowchart TD
+    A["SIGTERM received"] --> B{"server exists?"}
+    B -- yes --> C["server.close()"]
+    C --> D["log: HTTP server closed"]
+    B -- no --> E["no-op"]
 ```
 
 ## Documentation

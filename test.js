@@ -1,34 +1,61 @@
 /**
- * @fileoverview Jest integration suite ("getting started guide") for the Express
- * getting-started app. Before each test it boots the app under test by spawning
- * `node index.js` (the sibling module documented in ./index.js) as a child process,
- * then issues real HTTP `GET /` requests over both IPv4 (`127.0.0.1`) and IPv6
- * (`[::1]`), asserting an HTTP 200 response together with the expected page title
- * and heading.
+ * @file test.js
+ * @fileoverview Jest black-box integration suite ("getting started guide") for the
+ * nested Node.js/Express getting-started app. The suite does NOT import the Express
+ * application object; instead it boots the app under test by spawning `node index.js`
+ * (the sibling module documented in ./index.js) as a child process, then probes the
+ * running HTTP server with real `GET /` requests over both IPv4 (`127.0.0.1`) and IPv6
+ * (`[::1]`) loopback, asserting an HTTP 200 response together with the expected
+ * landing-page title and heading.
  *
- * The suite relies only on Node.js built-ins - `child_process.spawn` to launch the
- * server and `http.request` (via the Promise-based {@link get} helper) to make the
- * requests - with no third-party HTTP client. The target port is read from
- * `process.env.PORT`, falling back to 5006. This module exports nothing; it is run
- * directly by the Jest test runner (`npm test`).
+ * It relies solely on Node.js built-ins: `child_process.spawn` to launch the server
+ * (Source: test.js:1) and `http.request`, wrapped by the Promise-based {@link get}
+ * helper, to issue the requests (Source: test.js:2). The target port is read from
+ * `process.env.PORT`, falling back to 5006 to match the server default. This module
+ * exports nothing and is executed directly by the Jest runner (`npm test`).
  *
- * Source: test.js:L1-L103
+ * Source: test.js:1-6
  */
-
 const { spawn } = require('child_process')
 const { request } = require('http')
 
+/**
+ * TCP port the suite targets when issuing HTTP requests to the spawned server.
+ *
+ * Resolves to `process.env.PORT` when that variable is set (truthy), otherwise falls
+ * back to `5006`, mirroring the default used by the server in `index.js` so the tests
+ * always connect to the port the application actually listens on.
+ *
+ * @constant {number|string} PORT
+ * Source: test.js:4
+ */
 const PORT = process.env.PORT || 5006
 
-// Integration test suite for the running Express app: it exercises the live server
-// end to end by starting `node index.js` and asserting the real `GET /` HTTP contract.
-// Source: test.js:L26-L65
+/**
+ * Top-level Jest suite for the getting-started guide.
+ *
+ * Manages the lifecycle of a freshly spawned server around every test case: a child
+ * `node index.js` process is started before each test and terminated afterwards, while
+ * the individual specs assert that the landing page renders correctly over both the
+ * IPv4 and IPv6 loopback interfaces.
+ *
+ * Source: test.js:6
+ */
 describe('getting started guide', () => {
   let app
 
-  // Spawn `node index.js` as a child process before each test, forward the child's
-  // stdout to the console for debugging, and wait ~500ms so the HTTP server has time
-  // to start listening before requests are made. Source: test.js:L32-L37
+  /**
+   * Per-test setup hook.
+   *
+   * Spawns `node index.js` as a child process to launch a fresh instance of the Express
+   * server, forwards the child's stdout to the console for debugging, and then waits
+   * roughly 500 ms (by resolving a timeout-backed Promise) so the HTTP server has time
+   * to begin listening before any request is issued.
+   *
+   * @function beforeEach
+   * @returns {Promise<void>} Resolves after the ~500 ms startup grace period.
+   * Source: test.js:9-14
+   */
   beforeEach(async () => {
     app = spawn('node', ['index.js'])
     app.stdout.on('data', (data) => console.log(data.toString()))
@@ -36,8 +63,17 @@ describe('getting started guide', () => {
     return new Promise(resolve => setTimeout(resolve, 500))
   })
 
-  // Tear down after each test: detach the stdout listeners and send `SIGTERM` to the
-  // child process, exercising the app's graceful-shutdown path. Source: test.js:L41-L46
+  /**
+   * Per-test teardown hook.
+   *
+   * When a child process was spawned, detaches all of its stdout listeners and sends
+   * `SIGTERM` to the child, terminating the spawned server and exercising the app's
+   * graceful-shutdown path between tests.
+   *
+   * @function afterEach
+   * @returns {void}
+   * Source: test.js:16-21
+   */
   afterEach(() => {
     if (app) {
       app.stdout.removeAllListeners()
@@ -45,8 +81,17 @@ describe('getting started guide', () => {
     }
   })
 
-  // IPv4 case: GET http://127.0.0.1:${PORT} and expect HTTP 200 with the Heroku
-  // getting-started page title and heading. Source: test.js:L50-L55
+  /**
+   * IPv4 landing-page test.
+   *
+   * Issues `GET http://127.0.0.1:${PORT}` against the spawned server and asserts an HTTP
+   * `200` status code together with the expected page title
+   * (`<title>Node.js Getting Started on Heroku</title>`) and heading
+   * (`Getting Started on Heroku with Node.js`) in the response body.
+   *
+   * @returns {Promise<void>} Resolves once all assertions have passed.
+   * Source: test.js:23-28
+   */
   it('should bind to IPv4 and respond to GET /', async () => {
     const response = await get(`http://127.0.0.1:${PORT}`)
     expect(response.statusCode).toBe(200)
@@ -54,8 +99,16 @@ describe('getting started guide', () => {
     expect(response.body).toMatch("Getting Started on Heroku with Node.js")
   })
 
-  // IPv6 case: GET http://[::1]:${PORT} and assert the same HTTP 200, title, and
-  // heading over the IPv6 loopback. Source: test.js:L59-L64
+  /**
+   * IPv6 landing-page test.
+   *
+   * Mirrors the IPv4 case but targets the IPv6 loopback address: issues
+   * `GET http://[::1]:${PORT}` and asserts the same HTTP `200` status code, page title,
+   * and heading, confirming the server also serves requests over IPv6.
+   *
+   * @returns {Promise<void>} Resolves once all assertions have passed.
+   * Source: test.js:30-35
+   */
   it('should bind to IPv6 and respond to GET /', async () => {
     const response = await get(`http://[::1]:${PORT}`)
     expect(response.statusCode).toBe(200)
@@ -65,23 +118,25 @@ describe('getting started guide', () => {
 })
 
 /**
- * Issues an HTTP `GET` request to the given URL and buffers the full response body.
+ * Promisified HTTP `GET` client used by the tests.
  *
- * Wraps Node's `http.request` in a Promise: it sets the response encoding to UTF-8,
- * concatenates the streamed response chunks into a single string, resolves once the
- * response `end` event fires, and rejects if either the request or the response
- * stream emits an `error` event. Source: test.js:L86-L103
+ * Wraps Node's event-driven `http.request` in a Promise: it opens a `GET` request to the
+ * given URL, sets the response encoding to UTF-8 and accumulates the streamed response
+ * chunks on each `data` event (Source: test.js:42-43), and resolves once the response
+ * stream emits `end` (Source: test.js:44-49). The promise rejects if the response stream
+ * emits an `error` (Source: test.js:50) or the request itself emits an `error`
+ * (Source: test.js:52) - e.g. a connection refusal or other network failure.
  *
  * @param {string} url - The absolute URL to GET (e.g. `http://127.0.0.1:5006`).
- * @returns {Promise<{statusCode: number, body: string}>} Resolves with the HTTP
- *   response status code and the full response body decoded as text.
- * @throws {Error} Rejects (rather than throwing synchronously) if the request emits
- *   `error` or the response stream emits `error` - e.g. connection refused or a
- *   network failure.
+ * @returns {Promise<{statusCode: number, body: string}>} Resolves with the HTTP response
+ *   status code and the fully accumulated, UTF-8-decoded response body.
+ * @throws {Error} Rejects (rather than throwing synchronously) on a request or
+ *   response-stream `error` event.
  * @example
- * const response = await get('http://127.0.0.1:5006')
+ * const response = await get(`http://127.0.0.1:${PORT}`)
  * // response.statusCode === 200
- * // response.body contains the rendered HTML page
+ * // response.body contains the rendered HTML landing page
+ * Source: test.js:38-55
  */
 async function get(url) {
   return new Promise((resolve, reject) => {

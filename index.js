@@ -1,45 +1,68 @@
 /**
- * @fileoverview Express web-app entry point for the Heroku "Node.js Getting Started"
- * sample application. This CommonJS module bootstraps and runs the web server; it has
- * no exports and is executed directly (e.g. `node index.js`, as declared by the
- * Procfile's `web: node index.js`).
+ * @file Barebones Node.js/Express web server for the Heroku
+ *       "nodejs-getting-started" sample application.
  *
- * Responsibilities, in source order:
- * - Imports the Express framework and Node's built-in `path` module.
- * - Derives the listening port from `process.env.PORT`, falling back to `5006`.
- * - Creates the Express application instance.
- * - Serves static assets from `public/`, registers `views/` as the views directory,
- *   and selects EJS as the view engine.
- * - Defines a single `GET /` route that renders the `pages/index` EJS view.
- * - Starts the HTTP listener and logs the bound port.
- * - Tunes `server.keepAliveTimeout` to 95 seconds so it exceeds the Heroku Router's
- *   90-second Keep-Alive idle timeout.
- * - Registers a `SIGTERM` handler for graceful HTTP-server shutdown.
+ * @description
+ * Bootstraps an Express application that serves static browser assets from
+ * `public/` and renders EJS templates from `views/`. This module is
+ * side-effecting: importing/executing it immediately binds and starts the
+ * HTTP server rather than exporting a factory (`Source: index.js:1-19`).
  *
- * Source: index.js:L1-L85
+ * Runtime contract: the server listens on `process.env.PORT || 5006`
+ * (`Source: index.js:4`) and tunes the socket keep-alive timeout to sit above
+ * the Heroku Router's keep-alive idle timeout (`Source: index.js:27`). A
+ * `SIGTERM` handler performs a graceful shutdown (`Source: index.js:29-37`).
+ *
+ * @requires express
+ * @requires path
  */
 const express = require('express')
 const path = require('path')
 
+/**
+ * HTTP port the server binds to. Resolved from the platform-provided `PORT`
+ * environment variable (injected by Heroku and most PaaS hosts), falling back
+ * to `5006` for local development.
+ *
+ * @constant {number|string} port
+ * @default 5006
+ * Source: index.js:4
+ */
 const port = process.env.PORT || 5006
 
+/**
+ * The Express application instance that wires up middleware, view rendering,
+ * and route handlers for this service.
+ *
+ * @constant {import('express').Express} app
+ * Source: index.js:6
+ */
 const app = express()
 
+/**
+ * Middleware and view-engine configuration:
+ * - `express.static(public/)` serves static browser assets (images, CSS, JS,
+ *   e.g. `public/lang-logo.png`) directly from the `public/` directory
+ *   (`Source: index.js:8`).
+ * - the `views/` directory is registered as the template root
+ *   (`Source: index.js:9`).
+ * - `ejs` is selected as the view engine used to render those templates
+ *   (`Source: index.js:10`).
+ */
 app.use(express.static(path.join(__dirname, 'public')))
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'ejs')
 
 /**
- * Express request handler for the application's root route (`GET /`).
+ * Handles HTTP `GET /` — the application's single public endpoint.
  *
- * Logs that the index page is being rendered, then renders the `pages/index` EJS
- * template and sends the resulting HTML back to the client. Source: index.js:L44-L47
+ * Logs that it is rendering the home page, then renders the EJS template
+ * `pages/index`, producing a `200 text/html` response
+ * (`Source: index.js:12-15`).
  *
- * @param {import('express').Request} req - The incoming HTTP request.
- * @param {import('express').Response} res - The HTTP response used to render the EJS view.
+ * @param {express.Request} req - The incoming HTTP request.
+ * @param {express.Response} res - The HTTP response used to render the view.
  * @returns {void}
- * @example
- * // GET / → 200 text/html (rendered pages/index)
  */
 app.get('/', (req, res) => {
   console.log(`Rendering 'pages/index' for route '/'`)
@@ -47,15 +70,31 @@ app.get('/', (req, res) => {
 })
 
 /**
- * Server-bootstrap callback for `app.listen`. Invoked once the HTTP server has bound
- * to the configured `port` and is ready to accept connections; it logs the bound port. Source: index.js:L55-L57
+ * Binds the HTTP server to `port` and begins accepting connections. The
+ * returned server handle is retained in `server` so its keep-alive timeout can
+ * be tuned (`Source: index.js:27`) and so it can be shut down gracefully on
+ * `SIGTERM` (`Source: index.js:29-37`). The listen callback logs the chosen
+ * port once the socket is bound (`Source: index.js:17-19`).
  *
- * @returns {void}
+ * @constant {import('http').Server} server
  */
 const server = app.listen(port, () => {
   console.log(`Listening on ${port}`)
 })
 
+/**
+ * Keep-Alive timeout for the HTTP server, set to 95 seconds (`95 * 1000` ms).
+ *
+ * Deliberately GREATER than the Heroku Router's 90-second keep-alive idle
+ * timeout so that closing an idle connection is always initiated by the router
+ * rather than the Node.js server. This prevents a race condition in which the
+ * router forwards a request to the app just as Node is closing the socket. The
+ * existing inline notes below document the same rationale and link the
+ * authoritative docs (`Source: index.js:21-27`).
+ *
+ * @see https://devcenter.heroku.com/articles/http-routing#keepalives
+ * @see https://nodejs.org/api/http.html#serverkeepalivetimeout
+ */
 // The number of seconds an idle Keep-Alive connection is kept open. This should be greater than the Heroku Router's
 // Keep-Alive idle timeout of 90 seconds:
 // - to ensure that the closing of idle connections is always initiated by the router and not the Node.js server
@@ -65,18 +104,25 @@ const server = app.listen(port, () => {
 server.keepAliveTimeout = 95 * 1000
 
 /**
- * Graceful-shutdown handler for the `SIGTERM` signal (sent by Heroku when a dyno is
- * cycled or scaled down). Logs receipt of the signal, then calls `server.close()` to
- * stop accepting new connections and let in-flight requests finish, logging once the
- * HTTP server has fully closed. Source: index.js:L77-L85
+ * Graceful-shutdown handler for the `SIGTERM` signal (sent by Heroku and most
+ * process managers when a dyno/container is being stopped or recycled).
  *
- * @async
+ * On receipt it logs that shutdown has begun and, if the server was
+ * successfully created, calls `server.close(...)` to stop accepting new
+ * connections and to close the server once in-flight requests have drained
+ * (`Source: index.js:29-37`).
+ *
  * @listens process#SIGTERM
- * @returns {Promise<void>} Resolves once the shutdown handler completes.
+ * @returns {Promise<void>}
  */
 process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received: gracefully shutting down')
   if (server) {
+    /**
+     * Completion callback invoked once the HTTP server has finished closing
+     * (all connections drained); logs "HTTP server closed"
+     * (`Source: index.js:32-34`).
+     */
     server.close(() => {
       console.log('HTTP server closed')
     })
