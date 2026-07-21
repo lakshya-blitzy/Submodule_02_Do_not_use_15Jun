@@ -52,7 +52,7 @@ The app is released under the **MIT** license. Source: package.json:L29.
 
 Make sure you have [Node.js](http://nodejs.org/) and the [Heroku CLI](https://cli.heroku.com/) installed.
 
-> **Local prerequisites:** Only [Node.js](http://nodejs.org/) is required to clone, install, and run the app locally with the commands below. The [Heroku CLI](https://cli.heroku.com/) is **optional** and is needed only when you deploy (see [Deploying to Heroku](#deploying-to-heroku)) or run Heroku-specific commands.
+> **Local prerequisites:** Only [Node.js](https://nodejs.org/) is required to clone, install, and run the app locally with the commands below. The [Heroku CLI](https://cli.heroku.com/) is **optional** and is needed only when you deploy (see [Deploying to Heroku](#deploying-to-heroku)) or run Heroku-specific commands.
 
 ```sh
 $ git clone https://github.com/heroku/nodejs-getting-started.git # or clone your own fork
