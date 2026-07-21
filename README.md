@@ -7,6 +7,12 @@ This application supports the tutorials for both the [Cedar and Fir generations]
 * [Getting Started on Heroku with Node.js](https://devcenter.heroku.com/articles/getting-started-with-nodejs)
 * [Getting Started on Heroku Fir with Node.js](https://devcenter.heroku.com/articles/getting-started-with-nodejs-fir)
 
+> **Note:** The Heroku Fir tutorial linked above is served from an access-gated
+> area of the Heroku Dev Center and may return an authorization prompt
+> (HTTP 401) unless you are signed in to a Heroku account with Fir access. The
+> Cedar tutorial and all other Dev Center links referenced in this README remain
+> publicly accessible.
+
 ## Table of Contents
 
 - [Setup](#setup)
