@@ -16,8 +16,27 @@
  *   90-second Keep-Alive idle timeout.
  * - Registers a `SIGTERM` handler for graceful HTTP-server shutdown.
  *
- * Source: index.js:L1-L85
+ * Source: index.js:L1-L104
  */
+
+/**
+ * The Express `Request` object passed to every route handler. Declared as a JSDoc
+ * external because the type is owned by the Express framework (a runtime
+ * dependency), not by this module.
+ *
+ * @external ExpressRequest
+ * @see {@link https://expressjs.com/en/5x/api.html#req|Express 5 Request API}
+ */
+
+/**
+ * The Express `Response` object passed to every route handler; this application
+ * uses it to render an EJS view. Declared as a JSDoc external for the same reason
+ * as {@link external:ExpressRequest}.
+ *
+ * @external ExpressResponse
+ * @see {@link https://expressjs.com/en/5x/api.html#res|Express 5 Response API}
+ */
+
 const express = require('express')
 const path = require('path')
 
@@ -33,10 +52,10 @@ app.set('view engine', 'ejs')
  * Express request handler for the application's root route (`GET /`).
  *
  * Logs that the index page is being rendered, then renders the `pages/index` EJS
- * template and sends the resulting HTML back to the client. Source: index.js:L44-L47
+ * template and sends the resulting HTML back to the client. Source: index.js:L63-L66
  *
- * @param {import('express').Request} req - The incoming HTTP request.
- * @param {import('express').Response} res - The HTTP response used to render the EJS view.
+ * @param {external:ExpressRequest} req - The incoming HTTP request.
+ * @param {external:ExpressResponse} res - The HTTP response used to render the EJS view.
  * @returns {void}
  * @example
  * // GET / → 200 text/html (rendered pages/index)
@@ -48,7 +67,7 @@ app.get('/', (req, res) => {
 
 /**
  * Server-bootstrap callback for `app.listen`. Invoked once the HTTP server has bound
- * to the configured `port` and is ready to accept connections; it logs the bound port. Source: index.js:L55-L57
+ * to the configured `port` and is ready to accept connections; it logs the bound port. Source: index.js:L74-L76
  *
  * @returns {void}
  */
@@ -68,7 +87,7 @@ server.keepAliveTimeout = 95 * 1000
  * Graceful-shutdown handler for the `SIGTERM` signal (sent by Heroku when a dyno is
  * cycled or scaled down). Logs receipt of the signal, then calls `server.close()` to
  * stop accepting new connections and let in-flight requests finish, logging once the
- * HTTP server has fully closed. Source: index.js:L77-L85
+ * HTTP server has fully closed. Source: index.js:L96-L104
  *
  * @async
  * @listens process#SIGTERM
